@@ -1,19 +1,14 @@
 ﻿#include "database.h"
 #include <iostream>
-#include <cstdlib>
 #include <fstream>
+#include <sstream>
 
-Database::Database(const std::string& path) : db(nullptr), initialized(false), dbPath(path) {
-    if (sqlite3_open(dbPath.c_str(), &db) != SQLITE_OK)
+Database::Database(const std::string& db_file): dbFile(db_file)
+{
+    if (sqlite3_open(dbFile.c_str(), &db) != SQLITE_OK)
     {
-        std::cerr << "Failed to open database: " << sqlite3_errmsg(db) << "\n";
+        std::cerr << "Failed to open DB: " << sqlite3_errmsg(db) << "\n";
         db = nullptr;
-    }
-    else
-    {
-        initialized = true;
-        if (!createTableUsers())
-            std::cerr << "Failed to create table.\n";
     }
 }
 
@@ -22,79 +17,75 @@ Database::~Database() {
         sqlite3_close(db);
 }
 
-Database& Database::getInstance(const std::string& dbPath) {
-    static Database instance(dbPath);
-    return instance;
-}
-
-bool Database::createTableUsers() {
-    const std::string sql =
-        "CREATE TABLE IF NOT EXISTS users ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-        "name TEXT NOT NULL, "
-        "age INTEGER);";
-    return execute(sql);
-}
-
-bool Database::execute(const std::string& sql) {
+void Database::execute_sql(const std::string& sql)
+{
     char* errMsg = nullptr;
-    int rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
-    if (rc != SQLITE_OK) {
-        std::cerr << "SQL error: " << errMsg << "\n";
+    if (sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK)
+    {
+        std::cerr << "SQL Error: " << errMsg << "\n";
         sqlite3_free(errMsg);
-        return false;
     }
-    return true;
 }
 
-bool Database::insertRandomRows(int count) {
-    if (!initialized) 
-        return false;
-
-    const char* sql = "INSERT INTO users (name, age) VALUES (?, ?);";
-    sqlite3_stmt* stmt;
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK)// TODO: have a look
+void Database::createTable(const std::string& table_name, const std::vector<std::string>& columns)
+{
+    std::ostringstream ss;
+    ss << "CREATE TABLE IF NOT EXISTS " << table_name << " (";
+    for (size_t i = 0; i < columns.size(); ++i)
     {
+        ss << columns[i];
+        if (i < columns.size() - 1)
+            ss << ", ";
+    }
+    ss << ");";
+    execute_sql(ss.str());
+}
+
+void Database::insert(const std::string& table_name, const std::vector<std::string>& values) {
+    std::ostringstream ss;
+    ss << "INSERT INTO " << table_name << " VALUES (";
+    for (size_t i = 0; i < values.size(); ++i) {
+        ss << "?";
+        if (i < values.size() - 1) ss << ", ";
+    }
+    ss << ");";
+
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, ss.str().c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Prepare failed: " << sqlite3_errmsg(db) << "\n";
-        return false;
+        return;
     }
 
-    for (int row = 0; row < count; ++row)
-    {
-        std::string name = "User" + std::to_string(rand() % 10000);
-        int age = 18 + rand() % 50;
-
-        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 2, age);
-
-        if (sqlite3_step(stmt) != SQLITE_DONE)
-        {
-            std::cerr << "Insert failed at row " << row << ": " << sqlite3_errmsg(db) << "\n";
-            sqlite3_finalize(stmt);
-            return false;
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (values[i] == "NULL") {
+            sqlite3_bind_null(stmt, static_cast<int>(i + 1));
         }
+        else {
+            sqlite3_bind_text(stmt, static_cast<int>(i + 1), values[i].c_str(), -1, SQLITE_TRANSIENT);
+        }
+    }
 
-        sqlite3_reset(stmt);
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        std::cerr << "Insert failed: " << sqlite3_errmsg(db) << "\n";
     }
 
     sqlite3_finalize(stmt);
-    return true;
 }
 
-bool Database::exportToFile(const std::string& exportPath) {
-    if (!initialized) return false;
-
-    std::ifstream src(dbPath, std::ios::binary);
-    std::ofstream dst(exportPath, std::ios::binary);
-
-    if (!src || !dst) {
-        std::cerr << "Failed to open files for copying.\n";
+bool Database::dumpToFile(const std::string& filename)
+{
+    std::ifstream src_file(dbFile, std::ios::binary);
+    std::ofstream dst_file(filename, std::ios::binary);
+    if (!src_file || !dst_file)
+    {
+        std::cerr << "File copy failed.\n";
         return false;
     }
-
-    dst << src.rdbuf(); // Copy contents
-    std::cout << "Database copied to : " << exportPath << "\n";
+    dst_file << src_file.rdbuf();
+    if (!dst_file)
+    {
+        std::cerr << "Failed to write to file: " << filename << "\n";
+        return false;
+    }
     return true;
 }
-

@@ -1,23 +1,20 @@
 #pragma once
 #include <string>
+#include <vector>
 #include "sqlite3.h"
 
 class Database {
 public:
-    static Database& getInstance(const std::string& dbPath = "");
-
-    bool insertRandomRows(int count);
-    bool exportToFile(const std::string& exportPath);
-private:
-    Database(const std::string& path);
+    explicit Database(const std::string& db_file);
     ~Database();
-    Database(const Database&) = delete;
-    Database& operator=(const Database&) = delete;
 
-    bool createTableUsers();
-    bool execute(const std::string& sql);
+    void createTable(const std::string& table_name, const std::vector<std::string>& columns);
+    void insert(const std::string& table_name, const std::vector<std::string>& values);
+    bool dumpToFile(const std::string& filename);
 
-    sqlite3* db;
-    bool initialized;
-    std::string dbPath;
+private:
+    sqlite3* db{ nullptr };
+    std::string dbFile;
+
+    void execute_sql(const std::string& sql);
 };

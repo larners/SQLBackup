@@ -40,7 +40,8 @@ bool FtpClient::uploadFile(const std::string& localFilePath, const std::string& 
 
         res = curl_easy_perform(curl);
 
-        if (res != CURLE_OK) {
+        if (res != CURLE_OK)
+        {
             std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << "\n";
             curl_easy_cleanup(curl);
             fclose(file);
