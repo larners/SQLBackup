@@ -72,20 +72,19 @@ void Database::insert(const std::string& table_name, const std::vector<std::stri
     sqlite3_finalize(stmt);
 }
 
-bool Database::dumpToFile(const std::string& filename)
+void Database::dumpToFile(const std::string& filename)
 {
     std::ifstream src_file(dbFile, std::ios::binary);
+    if (!src_file)
+        throw std::runtime_error("Failed to open source DB file: " + dbFile);
+
     std::ofstream dst_file(filename, std::ios::binary);
-    if (!src_file || !dst_file)
-    {
-        std::cerr << "File copy failed.\n";
-        return false;
-    }
-    dst_file << src_file.rdbuf();
     if (!dst_file)
-    {
-        std::cerr << "Failed to write to file: " << filename << "\n";
-        return false;
-    }
-    return true;
+        throw std::runtime_error("Failed to open destination file: " + filename);
+
+    dst_file << src_file.rdbuf();
+
+    if (!dst_file)
+        throw std::runtime_error("Failed to write to destination file: " + filename);
+
 }

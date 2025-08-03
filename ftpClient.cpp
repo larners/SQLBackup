@@ -8,7 +8,7 @@ FtpClient::FtpClient(const std::string& host, int port, const std::string& usern
 
 FtpClient::~FtpClient() {}
 
-bool FtpClient::uploadFile(const std::string& localFilePath, const std::string& remotePath) {
+void FtpClient::uploadFile(const std::string& localFilePath, const std::string& remotePath) {
     CURL* curl;
     CURLcode res;
     FILE* file;
@@ -19,15 +19,16 @@ bool FtpClient::uploadFile(const std::string& localFilePath, const std::string& 
     file = fopen(localFilePath.c_str(), "rb");
 #endif
 
-    if (!file) {
-        std::cerr << "Failed to open local file : " << localFilePath << "\n";
-        return false;
-    }
+    if (!file)
+        throw std::runtime_error("Failed to open local file: " + localFilePath);
 
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    curl = curl_easy_init();
+    try {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        curl = curl_easy_init();
+        if (!curl) {
+            throw std::runtime_error("Failed to initialize curl.");
+        }
 
-    if (curl) {
         std::string ftpUrl = "ftp://" + host + ":" + std::to_string(port) + remotePath;
 
         curl_easy_setopt(curl, CURLOPT_URL, ftpUrl.c_str());
@@ -36,24 +37,26 @@ bool FtpClient::uploadFile(const std::string& localFilePath, const std::string& 
         curl_easy_setopt(curl, CURLOPT_READDATA, file);
         curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, CURLFTP_CREATE_DIR_RETRY);
         curl_easy_setopt(curl, CURLOPT_FTP_RESPONSE_TIMEOUT, 30L);
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_TRY); // Optional: FTP over SSL
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_TRY);
 
-        res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK)
-        {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << "\n";
-            curl_easy_cleanup(curl);
-            fclose(file);
-            curl_global_cleanup();
-            return false;
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK) {
+            throw std::runtime_error("curl_easy_perform() failed: " + std::string(curl_easy_strerror(res)));
         }
 
-        curl_easy_cleanup(curl);
+        std::cout << "File uploaded successfully to FTP: " << remotePath << "\n";
+    }
+    catch (...) {
+        if (curl)
+            curl_easy_cleanup(curl);
+        fclose(file);
+        curl_global_cleanup();
+        throw;  // rethrow the exception
     }
 
+    // Cleanup after success
+    if (curl)
+        curl_easy_cleanup(curl);
     fclose(file);
     curl_global_cleanup();
-    std::cout << "File uploaded successfully to FTP: " << remotePath << "\n";
-    return true;
 }

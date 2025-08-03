@@ -1,1 +1,4 @@
 C:\Users\MS\Desktop\Fortra\Project\SQLBackup\x64\Release\SQLBackup.exe
+C:\Users\MS\Desktop\Fortra\Project\SQLBackup\x64\Release\SQLBackup.vcxproj.CopyComplete
+C:\Users\MS\Desktop\Fortra\Project\SQLBackup\x64\Release\gtest.pdb
+C:\Users\MS\Desktop\Fortra\Project\SQLBackup\x64\Release\gtest_main.pdb

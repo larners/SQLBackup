@@ -14,7 +14,8 @@ usersTableHelper::usersTableHelper(Database& db): db_(db)
 
 void usersTableHelper::fillTable(int count) {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i)
+    {
         std::string name = "User" + std::to_string(rand() % 10000);
         std::string age = std::to_string(18 + rand() % 50);
         db_.insert("users", { "NULL", name, age });

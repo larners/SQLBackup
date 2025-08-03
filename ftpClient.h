@@ -7,7 +7,7 @@ public:
     ~FtpClient();
 
     //remotePath is shared folder in FTP server
-    bool uploadFile(const std::string& localFilePath, const std::string& remotePath);
+    void uploadFile(const std::string& localFilePath, const std::string& remotePath);
 
 private:
     std::string host;

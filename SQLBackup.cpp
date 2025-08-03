@@ -34,25 +34,41 @@ AppConfig parse_args(int argc, char* argv[]) {
     return cfg;
 }
 
+void databaseCreationAndBackupDemo(const AppConfig& cfg)
+{
+    // create database
+    Database db{ cfg.dbPath };
+
+    // create table
+    db.createTable("users", { "id INTEGER", "name TEXT", "age INTEGER" });
+
+    // fill with sample data (100 lines)
+    for (int i = 0; i < 100; ++i) {
+        auto name = "User" + std::to_string(i);
+        int age = 18 + (rand() % 50);
+        db.insert("users", { "NULL", name, std::to_string(age) });
+    }
+
+    // dump to file
+    const std::string filename{"users_backup.db"};
+
+    // upload to FTP server
+    FtpClient ftp{ cfg.host, cfg.port, cfg.user, cfg.pass };
+    try
+    {
+        db.dumpToFile(filename);
+        ftp.uploadFile(filename, cfg.ftpDir + "/users_backup.db");
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "Error dumping database: " << ex.what() << "\n";
+    }
+}
+
 int main(int argc, char* argv[])
 {
     auto config = parse_args(argc, argv);
-    Database db(config.dbPath);
-
-    usersTableHelper users(db);
-    users.fillTable();
-
-    std::cout << "Database ready and filled with data.\n";
-    std::string localPath = "users_backup.db";
-    if (!db.dumpToFile(localPath))
-    {
-        std::cerr << "Failed to backup.\n";
-        return 1;
-    }
-
-    FtpClient ftp(config.host, config.port, config.user, config.pass);
-    if (!ftp.uploadFile(localPath, config.ftpDir +"/backup.db"))
-        return 1;
+    databaseCreationAndBackupDemo(config);
 
     return 0;
 }

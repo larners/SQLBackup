@@ -1,7 +1,6 @@
 #pragma once
 #include "database.h"
 
-
 class usersTableHelper
 {
 public:

@@ -10,7 +10,7 @@ public:
 
     void createTable(const std::string& table_name, const std::vector<std::string>& columns);
     void insert(const std::string& table_name, const std::vector<std::string>& values);
-    bool dumpToFile(const std::string& filename);
+    void dumpToFile(const std::string& filename);
 
 private:
     sqlite3* db{ nullptr };
