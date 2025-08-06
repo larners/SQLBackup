@@ -30,11 +30,11 @@
     <ClCompile Include="ftpClient.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="ftpClientTest.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="databaseTest.cpp">
-      <Filter>Исходные файлы</Filter>
+      <Filter>UnitTests</Filter>
+    </ClCompile>
+    <ClCompile Include="ftpClientTest.cpp">
+      <Filter>UnitTests</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -2,7 +2,6 @@
 #include "database.h"
 #include <iostream>
 #include "ftpClient.h"
-#include "users.h"
 
 struct AppConfig {
     std::string dbPath;
